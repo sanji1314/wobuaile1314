@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>智能考勤系统</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: auto;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+
+        body {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .sign-form {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        input,
+        button {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+
+        .sign-card {
+            border: 1px solid #eee;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .sign-info {
+            flex: 1;
+        }
+
+        .name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .time {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .location {
+            color: #333;
+            margin: 8px 0;
+            font-size: 0.95em;
+        }
+
+        .status {
+            color: #52c41a;
+            font-size: 0.9em;
+        }
+
+        .time-input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        #autoTime {
+            margin-left: 10px;
+        }
+
+        .batch-controls {
+            margin-top: 20px;
+            border-top: 1px solid #ddd;
+            padding-top: 15px;
+        }
+
+        .date-range {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .date-range input[type="date"] {
+            flex: 1;
+        }
+
+        .advanced-options {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .weekday-checkboxes {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .holiday-input {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        small {
+            color: #666;
+            display: block;
+            margin: 5px 0;
+        }
+
+        .countdown-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 123, 255, 0.9);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            font-size: 1.5em;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .countdown-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            margin-top: 10px;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .countdown-progress {
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            transform-origin: left;
+            animation: countdown 3s linear forwards;
+        }
+
+        @keyframes countdown {
+            from {
+                transform: scaleX(1);
+            }
+
+            to {
+                transform: scaleX(0);
+            }
+        }
+
+        #sign-form-container {
+            display: block;
+        }
+
+        #sign-records-container {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="sign-form-container">
+        <div class="sign-form">
+            <h2 style="text-align: center;">签到表单</h2>
+            <div class="form-group">
+                <label>姓名：</label>
+                <input type="text" id="username" required>
+            </div>
+            <div class="form-group">
+                <label>上传照片（本人头像照片）：</label>
+                <input type="file" id="avatar" accept="image/*" required>
+            </div>
+            <div class="form-group">
+                <label>签到时间：</label>
+                <div class="time-input-group">
+                    <input type="datetime-local" id="customTime">
+                    <button type="button" onclick="useCurrentTime()" id="autoTime">使用当前时间</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>签到地点（可以写一下如：一号卡机等）：</label>
+                <input type="text" id="location" required>
+            </div>
+
+            <div class="batch-controls">
+                <h3>批量添加</h3>
+                <div class="date-range">
+                    <input type="date" id="startDate">
+                    <input type="date" id="endDate">
+                </div>
+
+                <div class="advanced-options">
+                    <h4>高级设置</h4>
+
+                    <div class="weekday-checkboxes">
+                        <label><input type="checkbox" value="1"> 周一</label>
+                        <label><input type="checkbox" value="2"> 周二</label>
+                        <label><input type="checkbox" value="3"> 周三</label>
+                        <label><input type="checkbox" value="4"> 周四</label>
+                        <label><input type="checkbox" value="5"> 周五</label>
+                        <label><input type="checkbox" value="6"> 周六</label>
+                        <label><input type="checkbox" value="0"> 周日</label>
+                    </div>
+
+                    <div>
+                        <small>排除日期（YYYY-MM-DD格式，多个用逗号分隔）</small>
+                        <input type="text" id="holidays" class="holiday-input" placeholder="例：2023-10-01,2023-10-02">
+                    </div>
+                </div>
+
+                <button onclick="batchAddRecords()">智能批量生成</button>
+            </div>
+
+            <button onclick="addSignRecord()">提交单个签到</button>
+        </div>
+    </div>
+    <div id="sign-records-container">
+        <div id="sign-records">
+            <h2 style="text-align: center;">签到记录</h2>
+        </div>
+    </div>
+    <div class="countdown-overlay">
+        <div>提交成功！</div>
+        <div class="countdown-bar">
+            <div class="countdown-progress"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('touchstart', function () { }, { passive: true });
+
+        document.addEventListener('touchmove', function (e) {
+            if (e.scale !== 1) e.preventDefault();
+        }, { passive: false });
+
+        function updateSafeArea() {
+            document.documentElement.style.setProperty('--safe-area-top', env(safe - area - inset - top));
+            document.documentElement.style.setProperty('--safe-area-bottom', env(safe - area - inset - bottom));
+        }
+        window.addEventListener('resize', updateSafeArea);
+        updateSafeArea();
+
+        function useCurrentTime() {
+            const now = new Date();
+            const timeString = now.toISOString().slice(0, 16);
+            document.getElementById('customTime').value = timeString;
+        }
+
+        function addSignRecord() {
+            const username = document.getElementById('username').value;
+            const location = document.getElementById('location').value;
+            const customTime = document.getElementById('customTime').value;
+            const fileInput = document.getElementById('avatar');
+
+            if (!username || !location || !fileInput.files[0] || !customTime) {
+                alert('请填写所有必填字段');
+                return;
+            }
+
+            const card = document.createElement('div');
+            card.className = 'sign-card';
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const dateObj = new Date(customTime);
+                const formattedTime = dateObj.toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                card.innerHTML = `
+                    <img src="${e.target.result}" class="avatar" alt="用户头像">
+                    <div class="sign-info">
+                        <div class="name">${username}</div>
+                        <div class="time">${formattedTime}</div>
+                        <div class="location">${location}</div>
+                        <div class="status">已签到</div>
+                    </div>
+                `;
+            }
+            reader.readAsDataURL(fileInput.files[0]);
+
+            document.getElementById('username').value = '';
+            document.getElementById('location').value = '';
+            document.getElementById('customTime').value = '';
+            document.getElementById('avatar').value = '';
+
+            document.getElementById('sign-records').appendChild(card);
+            showSuccessAnimation();
+        }
+
+        useCurrentTime();
+
+        function batchAddRecords() {
+            const startDate = new Date(document.getElementById('startDate').value);
+            const endDate = new Date(document.getElementById('endDate').value);
+            const username = document.getElementById('username').value.trim();
+            const location = document.getElementById('location').value.trim();
+            const fileInput = document.getElementById('avatar');
+            const baseTime = document.getElementById('customTime').value;
+
+            const excludedDays = Array.from(
+                document.querySelectorAll('.weekday-checkboxes input:checked')
+            ).map(cb => parseInt(cb.value));
+
+            const holidays = document.getElementById('holidays').value
+                .split(',')
+                .map(d => d.trim())
+                .filter(d => d)
+                .map(d => new Date(d));
+
+            if (!validateBatchInput(startDate, endDate, username, location, fileInput)) {
+                return;
+            }
+
+            const dateList = generateDateList(startDate, endDate, excludedDays, holidays);
+
+            const fragment = document.createDocumentFragment();
+            dateList.reverse().forEach(date => {
+                const card = createBatchCard(date, username, location, fileInput.files[0], baseTime);
+                fragment.appendChild(card);
+            });
+
+            document.getElementById('sign-records').appendChild(fragment);
+            showSuccessAnimation();
+        }
+
+        function validateBatchInput(startDate, endDate, username, location, fileInput) {
+            if (!username || !location || !fileInput.files[0]) {
+                alert('请填写姓名、地点并上传照片');
+                return false;
+            }
+
+            if (isNaN(startDate)) {
+                alert('请选择有效的开始日期');
+                return false;
+            }
+
+            if (isNaN(endDate)) {
+                alert('请选择有效的结束日期');
+                return false;
+            }
+
+            if (startDate > endDate) {
+                alert('开始日期不能晚于结束日期');
+                return false;
+            }
+
+            return true;
+        }
+
+        function generateDateList(startDate, endDate, excludedDays, holidays) {
+            const dateList = [];
+            const currentDate = new Date(startDate);
+            const holidaySet = new Set(holidays.map(d => d.toISOString().slice(0, 10)));
+
+            while (currentDate <= endDate) {
+                const dateCopy = new Date(currentDate);
+
+                const isExcludedDay = excludedDays.includes(dateCopy.getDay());
+                const isHoliday = holidaySet.has(dateCopy.toISOString().slice(0, 10));
+
+                if (!isExcludedDay && !isHoliday) {
+                    dateList.push(dateCopy);
+                }
+
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+
+            return dateList;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.weekday-checkboxes input[value="0"], .weekday-checkboxes input[value="6"]')
+                .forEach(cb => cb.checked = true);
+        });
+
+        function createBatchCard(date, username, location, file, baseTime) {
+            const card = document.createElement('div');
+            card.className = 'sign-card';
+
+            const [baseHour, baseMinute] = baseTime.split('T')[1]?.split(':') || ['09', '00'];
+
+            date.setHours(baseHour);
+            date.setMinutes(baseMinute);
+
+            // 随机生成0到30分钟的偏移量
+            const randomMinutes = Math.floor(Math.random() * 31);
+            date.setMinutes(date.getMinutes() + randomMinutes);
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const formattedTime = date.toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }).replace(/\//g, '-');
+
+                card.innerHTML = `
+            <img src="${e.target.result}" class="avatar" alt="用户头像">
+            <div class="sign-info">
+                <div class="name">${username}</div>
+                <div class="time">${formattedTime}</div>
+                <div class="location">${location}</div>
+                <div class="status">已签到</div>
+            </div>
+        `;
+            }
+            reader.readAsDataURL(file);
+
+            return card;
+        }
+
+        function initDateInputs() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('startDate').value = today;
+            document.getElementById('endDate').value = today;
+        }
+        initDateInputs();
+
+        function showSuccessAnimation() {
+            document.getElementById('sign-form-container').style.display = 'none';
+            document.getElementById('sign-records-container').style.display = 'block';
+
+            const overlay = document.querySelector('.countdown-overlay');
+            overlay.style.display = 'block';
+
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                window.scrollTo({
+                    top: document.body.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }, 3000);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('sign-form-container').style.display = 'block';
+            document.getElementById('sign-records-container').style.display = 'none';
+        });
+    </script>
+</body>
+
+</html>

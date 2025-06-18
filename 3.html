@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>公司查询</title>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+
+    input {
+      padding: 10px;
+      margin: 10px;
+      width: 200px;
+    }
+
+    button {
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>如果搜索出来的公司名称不对,联系商家处理</h2>
+  <input type="text" id="cityName" placeholder="请输入公司所在市:例如无锡市">
+  <input type="text" id="companyName" placeholder="请输入公司全名称">
+  <button onclick="searchCompany()">查询</button>
+  <div id="result"></div>
+
+  <script>
+    function searchCompany() {
+      var companyName = $('#companyName').val();
+      var cityName = $('#cityName').val();
+      var encodedCityName = encodeURIComponent(cityName);
+      var encodedCompanyName = encodeURIComponent(companyName);
+      var apiUrl = 'https://h5gw.map.qq.com/ws/place/v1/search?boundary=region(' + encodedCityName + ',0)&keyword=' + encodedCompanyName + '&apptag=lbsplace_search&key=QZQBZ-2N2K4-SI2U7-KQ3TC-MXGLF-6FBXQ&output=jsonp&callback=my_callback';
+      $.ajax({
+        url: apiUrl,
+        dataType: 'jsonp',
+        jsonpCallback: 'my_callback',
+        success: function (data) {
+          // 这里可以根据API返回的数据结构来处理和展示结果
+          var resultDiv = $('#result');
+          resultDiv.html('<h2>查询结果：</h2>');
+               if (data && data.data && data.data.length > 0) {
+       var company = data.data[0];
+       resultDiv.html('<h2>查询结果(注意公司是否一致)：</h2>');
+       resultDiv.append('<p style="color:red">公司名称：' + company.title + '</p>');
+       
+       resultDiv.append('<p>公司经度：' + company.location.lng + '</p>');
+       resultDiv.append('<p>公司纬度：' + company.location.lat + '</p>');
+    resultDiv.append('<p>签到定位地名：' + company.address + '</p>');
+       // 处理归属地的代码修改部分
+       var address = company.address;
+       var keywords = ["往", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+       for (var j = 0; j < keywords.length; j++) {
+         var keyword = keywords[j];
+         if (address.indexOf(keyword) > - 1) {
+           address = address.substring(0, address.indexOf(keyword));
+           break;
+         }
+       }
+       resultDiv.append('<p>公司归属地名：' + address + '</p>');
+     } else {
+       resultDiv.append('<p>未找到相关公司。</p>');
+     }
+        },
+        error: function () {
+          $('#result').html('<p>查询出错。</p>');
+        }
+      });
+    }
+  </script>
+</body>
+
+</html>
